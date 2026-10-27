@@ -1,0 +1,413 @@
+/* Стили только для страницы menu.
+   Общие переменные (:root), *, body, h1-h6 и т.д. берутся из style.css —
+   здесь повторяются только цвета, специфичные именно для меню. */
+
+/* Страница меню: снимаем ограничение .content из style.css, чтобы карточки шли по 5 в ряд */
+main.catalog-page .content {
+    max-width: none;
+    padding: 0;
+}
+
+/* --- Сайдбар категорий: автопрокрутка (JS) + ручная прокрутка мышью/пальцем --- */
+/* Обёртка несёт sticky и золотое свечение снизу. Маска (mask-image) на .sidebar
+   обрезает box-shadow до border-box, поэтому свечение вынесено на немаскируемую обёртку. */
+.sidebar-wrap {
+    position: sticky;
+    top: 80px;
+    z-index: 999;
+    /* Full-bleed: растягиваем ленту категорий на всю ширину вьюпорта, игнорируя
+       боковые отступы основного контента (body > main). Приём не зависит от величины
+       отступа; горизонтального скролла нет — у body стоит overflow-x: hidden. */
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    /* Свечение по умолчанию выключено — включается только при прокрутке (как красное у шапки) */
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0);
+    transition: box-shadow 0.3s ease;
+}
+
+body.scrolled .sidebar-wrap {
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+.sidebar {
+    /* Лента категорий внутри обёртки; прилипание и свечение — на .sidebar-wrap */
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    padding: 12px 0;
+    background: var(--bg-secondary, #171717);
+    border-bottom: 1px solid var(--border);
+    /* мягкое затухание по краям — фиксированная узкая зона ~16px у каждого края */
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    /* скрываем полосу прокрутки — сама прокрутка (drag/трэкпад/тач) остаётся */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+.marquee-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    width: max-content;
+    white-space: nowrap;
+    /* автопрокрутка идёт через JS (scrollLeft), transform-анимация больше не нужна */
+    -webkit-user-select: none;
+    user-select: none;
+    /* отключаем выделение/перетаскивание/копирование текста внутри ленты;
+       клики по ссылкам категорий продолжают работать */
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+.marquee-content img {
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+.cat-link {
+    flex-shrink: 0;
+    display: inline-block;
+    /* лента .marquee-content с pointer-events:none — ссылкам возвращаем кликабельность */
+    pointer-events: auto;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    text-shadow: none;               /* тени текста на пунктирной обводке быть не должно */
+    color: var(--text-light);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    transition: color 0.3s ease, border-color 0.3s ease, transform 0.2s ease, background 0.3s ease, box-shadow 0.4s ease;
+    cursor: pointer;
+}
+
+/* Эффект «нагрева»: когда шапка прилипла к верхнему краю (скролл, body.scrolled),
+   у пилюль категорий горит только внутреннее свечение: белёсо-жёлтая горячая
+   вершина и оранжевый жар, затухающий вниз (без внешних теней и свечения кромки). */
+body.scrolled .cat-link {
+    /* Только внутреннее свечение: внешнее сияние (bloom) и «раскалённая» кромка убраны. */
+    box-shadow:
+        inset 0 2px 4px 0 rgba(255, 247, 214, 0.45),       /* белая горячая верхняя кромка */
+        inset 0 22px 22px -14px rgba(255, 130, 25, 0.45);  /* оранжевый жар, затухающий вниз */
+}
+
+.cat-link:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.cat-link.active {
+    background: var(--gradient);
+    color: var(--bg-dark);
+    border-color: transparent;
+}
+
+/* «Поваренная книга» — особый пункт: показывает все товары */
+.cookbook-link {
+    border-style: dashed;
+    border-color: var(--primary);
+    color: var(--primary);
+    background: transparent;
+    text-shadow: none;
+    padding: 8px 24px;   /* чуть больше воздуха — текст не ложится на пунктир */
+}
+.cookbook-link:hover {
+    color: var(--bg-dark);
+    background: var(--gradient);
+    border-color: var(--primary);
+}
+/* Активная «книга»: золотая заливка, НО пунктирная обводка остаётся видимой */
+.cookbook-link.active {
+    background: var(--gradient);
+    color: var(--bg-dark);
+    border-color: var(--primary);
+    text-shadow: none;
+}
+
+/* Уважение к настройке «уменьшить движение»: JS не запускает автопрокрутку, остаётся только ручная */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar {
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+}
+
+.catalog-grid {
+    /* Локальные Theme overrides для страницы меню (не трогает общий :root из style.css) */
+    --bg-card: #333;
+    --overlay-dark: rgba(0, 0, 0, 0.62);   /* единый тёмный фон: категория, «подробнее», не-нажатая «добавить» */
+
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+/* Планшет */
+@media (max-width: 1024px) {
+    .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Мобильные */
+@media (max-width: 640px) {
+    .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Узкие мобильные — один товар в строку */
+@media (max-width: 480px) {
+    .catalog-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+}
+
+/* --- Карточка товара (компактная, 5 в ряд) --- */
+.catalog-item {
+    display: flex;
+    flex-direction: column;
+    /* Сложный «гранитный» фон без красного: диагональный переход чёрный →
+       стально-серый → чёрный + нейтральные блик/затемнение по углам для глубины. */
+    background:
+        radial-gradient(130% 100% at 12% -10%, rgba(255, 255, 255, 0.06), transparent 55%),
+        radial-gradient(120% 120% at 100% 110%, rgba(0, 0, 0, 0.5), transparent 60%),
+        linear-gradient(150deg, #0d0d0f 0%, #26262b 42%, #161619 70%, #0a0a0c 100%);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px;
+    color: var(--text-light);
+    /* Появление карточек: быстро, но мягко «всплывают» снизу вверх.
+       fill-mode: backwards — до старта (во время задержки) карточка скрыта,
+       а ПОСЛЕ анимации transform не удерживается, поэтому hover-подъём работает. */
+    animation: card-float-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@keyframes card-float-in {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Лёгкий каскад: соседние карточки всплывают с маленьким сдвигом по фазе,
+   но суммарно всё быстро (шаг 0.04s, потолок ~0.4s). */
+.catalog-grid .catalog-item:nth-child(2)  { animation-delay: 0.04s; }
+.catalog-grid .catalog-item:nth-child(3)  { animation-delay: 0.08s; }
+.catalog-grid .catalog-item:nth-child(4)  { animation-delay: 0.12s; }
+.catalog-grid .catalog-item:nth-child(5)  { animation-delay: 0.16s; }
+.catalog-grid .catalog-item:nth-child(6)  { animation-delay: 0.20s; }
+.catalog-grid .catalog-item:nth-child(7)  { animation-delay: 0.24s; }
+.catalog-grid .catalog-item:nth-child(8)  { animation-delay: 0.28s; }
+.catalog-grid .catalog-item:nth-child(9)  { animation-delay: 0.32s; }
+.catalog-grid .catalog-item:nth-child(10) { animation-delay: 0.36s; }
+.catalog-grid .catalog-item:nth-child(n+11) { animation-delay: 0.40s; }
+
+/* Уважение к «уменьшить движение» — карточки появляются сразу, без всплытия. */
+@media (prefers-reduced-motion: reduce) {
+    .catalog-item { animation: none; }
+}
+
+.catalog-item:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.catalog-item.highlight {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.img-wrapper { position: relative; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+/* Метки прижаты к краю (без отступа). Верхний внешний угол закруглён под радиус рамки картинки: у категории — левый-верхний, у «подробнее» — правый-верхний */
+.cat-label { position: absolute; top: 0; left: 0; z-index: 2; height: 36px; padding: 0 12px; line-height: 35px; background: var(--overlay-dark); color: var(--text-light); border-top: 2px solid transparent; border-left: 2px solid transparent; border-radius: 8px 0 8px 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Стикер скидки — сдвинут на 2px вправо, основной фон var(--primary) (сплошной золотой).
+   Текст на сплошном золоте делаем тёмным для читаемости. overflow:hidden нужен,
+   чтобы «блик» (::after) не выходил за скруглённые границы.
+   Формат «-15% = 1 800 ₽» — длиннее прежнего, поэтому ограничиваем ширину
+   картинкой и обрезаем многоточием в крайнем случае. */
+.discount-label { position: absolute; top: 36px; left: 2px; z-index: 2; overflow: hidden; background: var(--primary); color: var(--bg-dark); padding: 4px 10px; border-radius: 0 0 8px 0; font-size: 0.9rem; font-weight: 700; max-width: calc(100% - 4px); white-space: nowrap; text-overflow: ellipsis; }
+/* Периодический «блик»: светло-золотая (почти белая) полоса скользит по стикеру.
+   Именно светлая, а не такого же золота, как фон — иначе на сплошном var(--primary)
+   блик был бы невидим. Цикл длинный, а вспышка занимает лишь малую его часть,
+   поэтому блик вспыхивает не постоянно, а изредка — «в случайный момент». */
+.discount-label::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 45%;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(120deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 250, 225, 0.85) 50%,
+        rgba(255, 255, 255, 0) 100%);
+    transform: translateX(-200%) skewX(-18deg);
+    animation: discount-glint 5s ease-in-out infinite;
+}
+@keyframes discount-glint {
+    0%, 72%   { transform: translateX(-200%) skewX(-18deg); }   /* затишье — блик слева за краем */
+    88%, 100% { transform: translateX(320%)  skewX(-18deg); }   /* резкий пролёт через стикер */
+}
+/* Разносим вспышки по карточкам разными длительностями/фазами, чтобы блики не
+   синхронизировались — вместе это читается как случайные срабатывания. */
+.catalog-grid .catalog-item:nth-child(3n)   .discount-label::after { animation-duration: 4.3s; animation-delay: -1.3s; }
+.catalog-grid .catalog-item:nth-child(3n+1) .discount-label::after { animation-duration: 5.6s; animation-delay: -2.7s; }
+.catalog-grid .catalog-item:nth-child(3n+2) .discount-label::after { animation-duration: 6.1s; animation-delay: -0.6s; }
+@media (prefers-reduced-motion: reduce) {
+    .discount-label::after { animation: none; }
+}
+.product-img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; border-radius: 8px; border: 2px solid var(--overlay-dark); }  /* невыбранный товар — контур 3px как фон «Категории»/«ПОДРОБНЕЕ» */
+
+/* Товар добавлен в корзину — золотая рамка вокруг картинки.
+   inset-тень рисуется внутри картинки и не обрезается .img-wrapper (overflow:hidden). */
+.catalog-item.added .product-img { border-color: rgba(255, 215, 0, 0.3); box-shadow: inset 0 0 0 3px rgba(255, 215, 0, 0.3); }
+/* Выбран товар — левый и верхний контур метки категории тоже становятся золотыми (совпадают с рамкой картинки) */
+.catalog-item.added .cat-label { border-top-color: rgba(255, 215, 0, 0.3); border-left-color: rgba(255, 215, 0, 0.3); }
+/* И у «подробнее» тонкий 1px контур вдоль края (верх+право) становится золотым */
+.catalog-item.added .info-btn { border-top-color: rgba(255, 215, 0, 0.3); border-right-color: rgba(255, 215, 0, 0.3); }
+
+/* Кнопка «подробнее» — иконка info вместо буквы i (красим через mask -> currentColor) */
+.info-btn { position: absolute; top: 0; right: 0; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 36px; background: var(--overlay-dark); backdrop-filter: blur(4px); color: var(--text-light); border: none; border-top: 2px solid transparent; border-right: 2px solid transparent; border-radius: 0 8px 0 8px; cursor: pointer; z-index: 3; transition: background 0.3s, color 0.3s; }
+.info-btn::before { content: ''; width: 22px; height: 22px; background: currentColor; -webkit-mask: url('/assets/icons/free-icon-font-square-info-9247423.png') center / contain no-repeat; mask: url('/assets/icons/free-icon-font-square-info-9247423.png') center / contain no-repeat; }
+.info-btn:hover { background: var(--primary); color: var(--bg-dark); }
+
+/* Поле количества — впритык к левому нижнему углу; закруглены нижний-левый (рамка картинки) и верхний-правый (к центру), левый-верхний — прямой */
+.qty-input { position: absolute; bottom: 0; left: 0; width: 72px; height: 44px; font-size: 1.5rem; font-weight: 700; background: var(--overlay-dark); color: var(--text-light); caret-color: var(--text-light); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 0 8px 0 8px; z-index: 3; display: none; text-align: center; font-family: inherit; }
+.qty-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.4); }
+
+/* Детали: название занимает ровно 2 строки по высоте.
+   h3 — flex-контейнер высотой 2 строки с вертикальным центром (однострочное название по центру),
+   span внутри — обрезка (line-clamp) не более чем на 2 строки. */
+.product-details { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }
+.product-details h3 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 2.6em;          /* 2 строки (line-height 1.3 x 2) */
+    font-size: 1.8rem;          /* шрифт названия увеличен в 2 раза */
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--primary);       /* название — золотое */
+    margin: 0;
+}
+.product-details h3 > span {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: 2.6em;
+    text-align: center;
+}
+
+/* Под названием — две строки: вес и цена.
+   База слева, итог («= ...») справа. */
+.detail-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.9rem;
+    line-height: 1.1;           /* уменьшаем вертикальные отступы вокруг текста */
+    padding: 0 4px;
+}
+.detail-line .weight       { color: rgba(212, 175, 55, 0.8); }
+.detail-line .total-weight { color: rgba(212, 175, 55, 0.8); font-weight: 600; }
+.detail-line .price        { color: rgba(212, 175, 55, 0.6); font-size: 1.1rem; }
+.detail-line .total-price  { color: rgba(212, 175, 55, 0.6); font-size: 1.1rem; }
+/* Товар со скидкой: основная цена зачёркнута и приглушена, рядом — цена со
+   скидкой сплошным золотом того же размера, что и обычная цена строки. */
+.detail-line .price .price-old {
+    text-decoration: line-through;
+    font-size: 0.85em;
+    opacity: 0.65;
+}
+.detail-line .price .price-new {
+    margin-left: 6px;
+    color: var(--primary);
+}
+
+/* Кнопка «добавить» — иконка plus в правом нижнем углу картинки (красим через mask -> currentColor) */
+.btn-cta::before { content: ''; width: 26px; height: 26px; background: currentColor; -webkit-mask: url('/assets/icons/free-icon-font-square-plus-9239975.png') center / contain no-repeat; mask: url('/assets/icons/free-icon-font-square-plus-9239975.png') center / contain no-repeat; }
+.btn-cta {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;                /* одной высоты с полем количества (44px) */
+    background: var(--overlay-dark);  /* не добавлена — тёмный фон, как у категории/подробнее */
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 8px 0 8px 0;  /* верхний-левый и нижний-правый (к центру/рамке) закруглены, верхний-правый и нижний-левый — прямые */
+    transition: background 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-cta:hover { background: var(--primary); color: var(--bg-dark); box-shadow: -2px -2px 10px rgba(0, 0, 0, 0.35); }
+/* Товар добавлен — прежний золотой градиент */
+.btn-cta.added { background: var(--gradient); color: var(--bg-dark); }
+/* Активная (добавленная) кнопка при наведении плавно светлеет до --primary.
+   Фон задан ГРАДИЕНТОМ той же формы, что и покойное var(--gradient), но целиком
+   из --primary — иначе переход «градиент → сплошной цвет» не интерполируется и
+   даёт чёрное моргание. Градиент→градиент с идентичными стопами меняется плавно. */
+.btn-cta.added:hover { background: linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%); color: var(--bg-dark); box-shadow: -2px -2px 10px rgba(0, 0, 0, 0.35); }
+
+/* Модальные окна страницы меню */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000000;
+}
+.modal-content { background: var(--bg-card); color: var(--text-light); border-radius: 12px; padding: 25px; max-width: 700px; width: 90%; }
+.modal-content h2 { color: var(--primary); margin-bottom: 15px; }
+
+/* --- Диалоги подтверждения (удаление из корзины / лимит 9999) --- */
+/* Совместимы с темой сайта: тёмная панель (.modal-content), тонкая золотая
+   обводка (единый токен rgba(255,215,0,0.3)), золотой заголовок — вместо
+   прежнего белого фона с чёрной рамкой, который выбивался из стиля. */
+.modal-dialog {
+    max-width: 420px;
+    text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.3), 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+.modal-dialog .modal-title {
+    margin: 0 0 24px;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+.modal-dialog .modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+/* Кнопки диалога — та же конвенция, что у кнопки «Закрыть» в карточке товара:
+   тёмный фон + золотая обводка, светлый текст; при наведении — золотая заливка. */
+.modal-btn {
+    min-width: 120px;
+    padding: 14px 30px;
+    border: 2px solid var(--primary);
+    border-radius: 6px;
+    background: var(--bg-dark);
+    color: var(--text-light);
+    font-family: inherit;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, filter 0.2s ease;
+}
+.modal-btn:hover { background: var(--gradient); color: var(--bg-dark); }
+/* Подтверждающее (утвердительное) действие — сразу золотой заливкой, чтобы
+   акцентировать «Да»/«ОК» на фоне нейтральной кнопки отмены. */
+.modal-btn.confirm { background: var(--gradient); color: var(--bg-dark); }
+.modal-btn.confirm:hover { filter: brightness(1.08); }

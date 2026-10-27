@@ -1,0 +1,394 @@
+/* Регистрируем переменную дрейфа фигур, чтобы её изменение анимировалось
+   плавно (обычные кастомные свойства не интерполируются transitions). */
+@property --pill-drift {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 0px;
+}
+
+:root {
+    --primary: #d4af37;
+    --primary-dark: #b8860b;
+    --secondary: #d4af37;
+    --bg-dark: #0a0a0a;
+    --bg-card: #1a1a1a;
+    --text-light: #e0e0e0;
+    --text-muted: #888;
+    --border: #333;
+    --gradient: linear-gradient(135deg, #d4af37 0%, #aa771c 100%);
+    --dark-red: #4a0404;
+}
+
+header {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1001;
+    background: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+    /* Общий transition: короткая анимация самих свойств шапки + плавное
+       «догоняние» дрейфа фигур (--pill-drift), который считает JS из направления скролла.
+       Оба варианта в ОДНОМ правиле, т.к. property shorthand перезаписывает себя */
+    transition: all 0.3s ease, --pill-drift 0.5s ease-out;
+}
+
+.nav-container {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.top-bar {
+    height: 30px;
+    background: #252525;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 20px;
+    width: 100%;
+    border-top: 2px solid #000;    /* чёрная полоса 2px на всю ширину экрана над топбаром */
+    border-bottom: 1px solid var(--border);
+    /* Обычный поток (НЕ sticky): при скролле топбар уезжает вверх вместе со страницей,
+       а липкая шапка (position: sticky; top: 0) поднимается и упирается в верхний край. */
+}
+
+/* Форма поиска по каталогу в топбаре: поле + кнопка с лупой справа */
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.search-input {
+    /* Ширина ≈ содержимому поля: field-sizing:size-to-fit текст.
+       width ниже — fallback для браузеров без field-sizing; сверху ограничиваем max-width. */
+    width: 200px;
+    height: 24px;
+    padding: 2px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-dark);
+    color: var(--text-light);
+    font-family: inherit;
+}
+@supports (field-sizing: content) {
+    .search-input {
+        field-sizing: content;
+        width: auto;      /* поле тянется по ширине текста/плейсхолдера */
+        min-width: 6ch;   /* не схлопывается в нуль при пустом значении */
+        max-width: 200px; /* потолок, чтобы длинный запрос не растягивал топбар */
+    }
+}
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+/* Кнопка поиска — золотая плашка-квадрат, высота = высоте поля (24px).
+   Лупка красится через mask -> currentColor. */
+.search-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;         /* та же высота, что у поля ввода */
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: var(--primary);
+    color: var(--bg-dark);
+    cursor: pointer;
+    transition: background 0.2s ease, filter 0.2s ease;
+}
+.search-btn:hover { background: var(--gradient); filter: brightness(1.08); }
+.search-btn::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: url('/assets/icons/free-icon-font-search-3917754.png') center / contain no-repeat;
+    mask: url('/assets/icons/free-icon-font-search-3917754.png') center / contain no-repeat;
+}
+
+.logo {
+    margin-top: -10px;
+    position: relative;
+    z-index: 1004;
+}
+
+.logo img {
+    width: 200px;
+    height: auto;
+    display: block;
+    /* Тень падает строго вниз под логотип и ложится на сайдбар категорий
+       (шапка z-index:1001 > сайдбар 999, а логотип выступает за нижний край шапки).
+       Два слоя: плотный контактный + более длинный «падающий» — для насыщенности. */
+    filter: drop-shadow(0 14px 12px rgba(0, 0, 0, 0.85)) drop-shadow(0 34px 28px rgba(0, 0, 0, 0.65));
+    transition: filter 0.3s ease;
+}
+
+.sparks-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30%;
+    height: 30px;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 10;
+}
+
+.spark {
+    position: absolute;
+    top: 30px;
+    width: 2px;
+    height: 2px;
+    background: #ffaa00;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: spark-fly 1s ease-out forwards;
+}
+
+.spark.red {
+    background-color: red;
+    box-shadow: 0 0 8px red;
+    width: 3px;
+    height: 3px;
+}
+
+@keyframes spark-fly {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(30px) scale(0); opacity: 0; }
+}
+
+header.scrolled {
+    border-top: 2px solid var(--dark-red);
+    /* Тёмно-красная внутренняя подсветка + золотое внешнее свечение под шапкой */
+    box-shadow: inset 0 20px 20px -10px rgba(74, 4, 4, 0.5), 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+/* На странице меню золотое свечение под шапкой не ставим — оно вынесено
+   под сайдбар категорий (.sidebar-wrap), чтобы не дублировалось. */
+body.page-menu header.scrolled {
+    box-shadow: inset 0 20px 20px -10px rgba(74, 4, 4, 0.5);
+}
+
+.nav-links {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2.4rem;
+    list-style: none;
+    z-index: 999;
+    /* Логотип 3:2 — его видимая текстовая строка ниже центра контейнера.
+       Смещаем меню вниз на те же 16px, что и бургер, чтобы держать один уровень. */
+    position: relative;
+    top: 16px;
+}
+
+/* Лёгкий фон под основным меню в шапке (только десктоп —
+   мобильная шторка ниже по файлу перекрывает фон сплошным var(--bg-dark)). */
+@media (min-width: 1025px) {
+    .nav-links {
+        padding: 0.45rem 1.4rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+    /* Все пункты меню — одинаковой ширины, несмотря на разное число букв
+       (min-width + nowrap + запрет сжатия; текст по центру за счёт text-align). */
+    .nav-links a {
+        min-width: 130px;
+        text-align: center;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+}
+
+/* Ряд продолговатых закруглённых прямоугольников на всю ширину экрана:
+   по одному каждые 10% ширины вьюпорта, в стиле фона основного меню
+   (rgba(255,255,255,0.05) + светлая обводка 1px). Показываем на ВСЕХ экранах,
+   включая мобильные. Псевдоэлемент = одна «пилюля» по центру первой десятой
+   доли экрана, а box-shadow-копии расставляют остальные по всему вьюпорту. */
+header::before {
+    content: '';
+    position: absolute;
+    left: 5vw;
+    top: 8px;
+    width: 6vw;
+    min-width: 24px;
+    height: 14px;
+    border-radius: 7px;
+    /* Заполнение пилюли; inset-обводка на копии не переносится (тени копируют
+       только фоновый цвет), поэтому на базовой пилюле рисуем её inset-слоями */
+    background: transparent;
+    /* Весь ряд фигур — полупрозрачный; степень задаётся одним opacity */
+    opacity: 0.3;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+        inset 0 0 0 100px rgba(255, 255, 255, 0.05),
+        -150vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -140vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -130vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -120vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -110vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -100vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -90vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -80vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -70vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -60vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -50vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -40vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -30vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -20vw 0 0 0 rgba(255, 255, 255, 0.05),
+        -10vw 0 0 0 rgba(255, 255, 255, 0.05),
+        10vw 0 0 0 rgba(255, 255, 255, 0.05),
+        20vw 0 0 0 rgba(255, 255, 255, 0.05),
+        30vw 0 0 0 rgba(255, 255, 255, 0.05),
+        40vw 0 0 0 rgba(255, 255, 255, 0.05),
+        50vw 0 0 0 rgba(255, 255, 255, 0.05),
+        60vw 0 0 0 rgba(255, 255, 255, 0.05),
+        70vw 0 0 0 rgba(255, 255, 255, 0.05),
+        80vw 0 0 0 rgba(255, 255, 255, 0.05),
+        90vw 0 0 0 rgba(255, 255, 255, 0.05),
+        100vw 0 0 0 rgba(255, 255, 255, 0.05),
+        110vw 0 0 0 rgba(255, 255, 255, 0.05),
+        120vw 0 0 0 rgba(255, 255, 255, 0.05),
+        130vw 0 0 0 rgba(255, 255, 255, 0.05),
+        140vw 0 0 0 rgba(255, 255, 255, 0.05),
+        150vw 0 0 0 rgba(255, 255, 255, 0.05);
+    /* Ряд уезжает по горизонтали при прокрутке (дрейф задаёт JS через
+       --pill-drift на header). Запас копий от -150vw до +150vw не даёт
+       «дыр» по краям вьюпорта при длинном смещении в обе стороны. */
+    transform: translateX(var(--pill-drift, 0px));
+    pointer-events: none;
+    z-index: 0;                          /* под пунктами меню/логотипом */
+}
+
+.nav-links a {
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    position: relative;
+    padding: 0.5rem 0;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* Подчёркивание «из центра» — плавный scaleX вместо роста слева направо */
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -2px;
+    width: 100%;
+    height: 2px;
+    background: var(--gradient);
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Надчёркивание сверху — зеркальный аналог подчёркивания (та же анимация из центра) */
+.nav-links a::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    width: 100%;
+    height: 2px;
+    background: var(--gradient);
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    color: var(--primary);
+    text-shadow: 0 0 14px rgba(212, 175, 55, 0.35);
+}
+
+.nav-links a:hover::after,
+.nav-links a.active::after,
+.nav-links a:hover::before,
+.nav-links a.active::before {
+    transform: translateX(-50%) scaleX(1);
+}
+
+/* Активный пункт — чуть весомее: постоянный золотой текст без свечения-«ховера» */
+.nav-links a.active {
+    text-shadow: none;
+}
+
+.burger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    /* квадратная зона нажатия 44px */
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    z-index: 1002;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+    /* Логотип 3:2 (пламя сверху, текст ниже центра) — flex-центрирование ставит бургер
+       на центр контейнера, выше текстовой строки логотипа. Смещаем вниз к видимой части. */
+    position: relative;
+    top: 16px;
+}
+
+.burger:hover { background: rgba(212, 175, 55, 0.1); }
+
+.burger span {
+    display: block;
+    width: 28px;
+    height: 3px;
+    border-radius: 3px;
+    background-color: var(--primary);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* центр соседних полос = 3px + 6px gap = 9px → сдвиг на 9px, чтобы «X» сошёлся ровно по центру */
+.burger.active span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+.burger.active span:nth-child(2) { opacity: 0; }
+.burger.active span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+
+@media (max-width: 1024px) {
+    .burger { display: flex; }
+
+    .nav-links {
+        position: fixed;
+        top: 110px;
+        right: -100%;
+        width: 50%;
+        height: 100vh;
+        background: var(--bg-dark);
+        z-index: 999;
+        flex-direction: column;
+        /* Пункты выровнены по верхнему краю шторки (не центруются по вертикали),
+           с небольшим отступом сверху, чтобы не липли к шапке */
+        justify-content: flex-start;
+        padding-top: 2rem;
+        align-items: center;
+        transition: right 0.3s ease;
+    }
+
+    .nav-links.active { right: 0; }
+
+    /* Пункты шторки — одинаковой ширины (все растянуты до самой длинной) */
+    .nav-links li { width: 100%; display: flex; justify-content: center; }
+    .nav-links a { min-width: 200px; text-align: center; white-space: nowrap; }
+
+    header.scrolled .nav-links { top: 80px; }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
